@@ -5,6 +5,66 @@ import numpy as np
 import plotly.express as px
 from scipy.stats import pearsonr, spearmanr
 
+def evaluate_supernova_candidate(
+    initial_mass=None,
+    mass_uncertainty=None
+):
+    threshold = 8.0
+
+    if initial_mass is None:
+        return {
+            "result": "Insufficient Information",
+            "reason": "Initial stellar mass is unavailable."
+        }
+
+    if mass_uncertainty is not None:
+
+        lower_mass = initial_mass - mass_uncertainty
+        upper_mass = initial_mass + mass_uncertainty
+
+        if lower_mass >= threshold:
+            return {
+                "result": "Potential Candidate",
+                "reason": (
+                    "The estimated initial mass, including "
+                    "uncertainty, meets the threshold."
+                )
+            }
+
+        elif upper_mass < threshold:
+            return {
+                "result": "Mass Criterion Not Met",
+                "reason": (
+                    "The estimated initial mass, including "
+                    "uncertainty, is below the threshold."
+                )
+            }
+
+        else:
+            return {
+                "result": "Uncertain",
+                "reason": (
+                    "The measurement uncertainty overlaps "
+                    "the 8 solar mass threshold."
+                )
+            }
+
+    if initial_mass >= threshold:
+        return {
+            "result": "Potential Candidate",
+            "reason": (
+                "The initial stellar mass meets the "
+                "approximate 8 solar mass threshold."
+            )
+        }
+
+    return {
+        "result": "Mass Criterion Not Met",
+        "reason": (
+            "The initial stellar mass is below "
+            "the approximate threshold."
+        )
+    }
 
 # =====================================
 # 1. PAGE CONFIGURATION
@@ -773,71 +833,122 @@ elif page == "Supernova Remnants":
 
 elif page == "Stellar Evolution Simulator":
 
-    st.header("Stellar Evolution Simulator")
+    st.header("Supernova Progenitor Screening")
 
     st.write(
-        "Explore possible stellar evolutionary outcomes "
-        "based on initial stellar properties."
+        "Evaluate whether a star has characteristics "
+        "associated with a potential core-collapse supernova progenitor."
     )
 
-    mass = st.slider(
-        "Initial Stellar Mass (Solar Masses)",
-        0.1, 50.0, 1.0, 0.1
+    st.info(
+        "This is a rule-based screening tool using an approximate "
+        "initial mass threshold of 8 solar masses."
     )
 
-    metallicity = st.slider(
-        "Metallicity [Fe/H]",
-        -2.5, 0.5, 0.0, 0.1
+    st.subheader("Manual Star Evaluation")
+
+    st.write(
+        "Enter the available stellar properties below."
     )
 
-    age = st.number_input(
-        "Current Stellar Age (Gyr)",
-        min_value=0.0,
-        max_value=13.8,
-        value=1.0
-    )
+    with st.form("manual_star_form"):
 
-    # Simplified main-sequence approximation
-    lifetime = 10 * (mass ** -2.5)
+        initial_mass = st.number_input(
+            "Initial Stellar Mass (Solar Masses)",
+            min_value=0.0,
+            max_value=100.0,
+            value=0.0,
+            step=0.1,
+            help="Enter 0 if the initial mass is unknown."
+        )
 
-    st.subheader("Estimated Results")
+        mass_uncertainty = st.number_input(
+            "Mass Uncertainty (Solar Masses)",
+            min_value=0.0,
+            max_value=50.0,
+            value=0.0,
+            step=0.1
+        )
 
-    col1, col2 = st.columns(2)
+        st.caption(
+            "Optional properties for additional stellar context:"
+        )
 
-    col1.metric(
-        "Approx. Main-Sequence Lifetime",
-        f"{lifetime:.3f} Gyr"
-    )
+        current_mass = st.number_input(
+            "Current Stellar Mass (Solar Masses)",
+            min_value=0.0,
+            value=0.0,
+            step=0.1
+        )
 
-    remaining = max(0, lifetime - age)
+        age = st.number_input(
+            "Stellar Age (Gyr)",
+            min_value=0.0,
+            value=0.0,
+            step=0.1
+        )
 
-    col2.metric(
-        "Approx. Main-Sequence Time Remaining",
-        f"{remaining:.3f} Gyr"
-    )
+        temperature = st.number_input(
+            "Stellar Temperature (K)",
+            min_value=0.0,
+            value=0.0,
+            step=100.0
+        )
 
-    if age < lifetime:
-        stage = "Approximately Main Sequence"
-    else:
-        stage = "Possibly Post-Main-Sequence"
+        radius = st.number_input(
+            "Stellar Radius (Solar Radii)",
+            min_value=0.0,
+            value=0.0,
+            step=0.1
+        )
 
-    if mass < 8:
-        outcome = "Likely White Dwarf"
-    elif mass < 25:
-        outcome = "Core-Collapse Candidate"
-    else:
-        outcome = "Black Hole Formation Possible"
+        luminosity = st.number_input(
+            "Stellar Luminosity (Solar Luminosities)",
+            min_value=0.0,
+            value=0.0,
+            step=0.1
+        )
 
-    st.divider()
+        metallicity = st.number_input(
+            "Metallicity [Fe/H]",
+            min_value=-5.0,
+            max_value=2.0,
+            value=0.0,
+            step=0.1
+        )
 
-    st.write("**Estimated Evolutionary Stage:**", stage)
+        submitted = st.form_submit_button(
+            "Evaluate Star"
+        )
 
-    st.write("**Possible Final Outcome:**", outcome)
+        if submitted:
 
-    st.warning(
-        "This is a simplified educational estimate, "
-        "not a calibrated stellar evolution model. "
-        "Metallicity is not yet incorporated into the "
-        "lifetime calculation. MIST/PARSEC tracks are "
-        "needed for more reliable evolutionary estimates."
-    )
+            # Treat zero as unknown for initial mass
+            evaluated_mass = (
+                initial_mass if initial_mass > 0 else None
+            )
+
+            evaluated_uncertainty = (
+                mass_uncertainty if mass_uncertainty > 0 else None
+            )
+
+            result = evaluate_supernova_candidate(
+                initial_mass=evaluated_mass,
+                mass_uncertainty=evaluated_uncertainty
+            )
+
+            st.divider()
+
+            st.subheader("Screening Results")
+
+            st.metric(
+                "Evaluation",
+                result["result"]
+            )
+
+            st.write("**Reason:**", result["reason"])
+
+            st.caption(
+                "This is an approximate screening result, "
+                "not a prediction or guarantee of a supernova."
+            )
