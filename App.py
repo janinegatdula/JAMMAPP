@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
+
 # =====================================
 # 1. PAGE CONFIGURATION
 # =====================================
@@ -269,6 +270,196 @@ elif page == "Gaia Star Explorer":
         st.caption(
             f"Showing {len(hr_data):,} matched host stars with "
             "available temperature and absolute magnitude measurements."
+        )
+
+        # =====================================
+        # STELLAR MASS DISTRIBUTION
+        # =====================================
+
+        st.divider()
+
+        st.subheader("✦ Stellar Mass Distribution")
+
+        st.write(
+            "Examine the distribution of estimated stellar masses "
+            "among the matched exoplanet-host stars."
+        )
+
+        # Remove records without stellar mass estimates
+        mass_data = stellar_data.dropna(subset=["st_mass"]).copy()
+
+        fig_mass = px.histogram(
+            mass_data,
+            x="st_mass",
+            nbins=30,
+            labels={
+                "st_mass": "Stellar Mass (Solar Masses)",
+                "count": "Number of Stars"
+            },
+            title="Distribution of Stellar Masses",
+            color_discrete_sequence=["#9B72CF"]
+        )
+
+        # Approximate core-collapse threshold
+        fig_mass.add_vline(
+            x=8,
+            line_dash="dash",
+            line_color="#FF6B6B",
+            line_width=2,
+            annotation_text="Approx. 8 Solar Masses",
+            annotation_position="top right"
+        )
+
+        fig_mass.update_layout(
+            template="plotly_dark",
+            height=500,
+            xaxis_title="Stellar Mass (Solar Masses)",
+            yaxis_title="Number of Stars",
+            margin=dict(l=40, r=40, t=70, b=40)
+        )
+
+        st.plotly_chart(
+            fig_mass,
+            use_container_width=True
+        )
+
+        # Summary statistics
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "Stars with Mass Estimates",
+            f"{len(mass_data):,}"
+        )
+
+        col2.metric(
+            "Average Stellar Mass",
+            f"{mass_data['st_mass'].mean():.2f} M☉"
+        )
+
+        col3.metric(
+            "Maximum Recorded Mass",
+            f"{mass_data['st_mass'].max():.2f} M☉"
+        )
+
+        st.caption(
+            "The dashed line represents the approximate 8-solar-mass "
+            "initial-mass threshold commonly associated with core-collapse "
+            "supernovae. The available values are host-star mass estimates, "
+            "not necessarily their initial masses."
+        )
+
+        # =====================================
+        # STELLAR MASS VS STELLAR AGE
+        # =====================================
+
+        st.divider()
+
+        st.subheader("✦ Stellar Mass vs. Stellar Age")
+
+        st.write(
+            "Explore how stellar mass relates to the estimated age "
+            "of exoplanet-host stars."
+        )
+
+        # Keep only stars with both mass and age measurements
+        mass_age_data = stellar_data.dropna(
+            subset=["st_mass", "st_age"]
+        ).copy()
+
+        fig_mass_age = px.scatter(
+            mass_age_data,
+            x="st_mass",
+            y="st_age",
+            color="mh_gspphot",
+            hover_data=[
+                "source_id",
+                "st_teff",
+                "st_rad"
+            ],
+            color_continuous_scale="Plasma",
+            labels={
+                "st_mass": "Stellar Mass (Solar Masses)",
+                "st_age": "Stellar Age (Gyr)",
+                "mh_gspphot": "Metallicity (dex)",
+                "source_id": "Gaia Source ID",
+                "st_teff": "Effective Temperature (K)",
+                "st_rad": "Stellar Radius (Solar Radii)"
+            },
+            title="Stellar Mass vs. Stellar Age"
+        )
+
+        fig_mass_age.update_layout(
+            template="plotly_dark",
+            height=550,
+            margin=dict(l=40, r=40, t=70, b=40)
+        )
+
+        st.plotly_chart(
+            fig_mass_age,
+            use_container_width=True
+        )
+
+        st.caption(
+            f"Showing {len(mass_age_data):,} host stars with "
+            "available mass and age measurements. "
+            "Age estimates are unavailable for some stars."
+        )
+
+        # =====================================
+        # STELLAR METALLICITY VS STELLAR MASS
+        # =====================================
+
+        st.divider()
+
+        st.subheader("✦ Stellar Metallicity vs. Stellar Mass")
+
+        st.write(
+            "Investigate the relationship between stellar metallicity "
+            "and estimated stellar mass."
+        )
+
+        # Keep records with both measurements
+        metallicity_data = stellar_data.dropna(
+            subset=["mh_gspphot", "st_mass"]
+        ).copy()
+
+        fig_metallicity = px.scatter(
+            metallicity_data,
+            x="mh_gspphot",
+            y="st_mass",
+            color="st_age",
+            hover_data=[
+                "source_id",
+                "st_teff"
+            ],
+            trendline="ols",
+            color_continuous_scale="Plasma",
+            labels={
+                "mh_gspphot": "Metallicity (dex)",
+                "st_mass": "Stellar Mass (Solar Masses)",
+                "st_age": "Stellar Age (Gyr)",
+                "source_id": "Gaia Source ID",
+                "st_teff": "Effective Temperature (K)"
+            },
+            title="Stellar Metallicity vs. Stellar Mass"
+        )
+
+        fig_metallicity.update_layout(
+            template="plotly_dark",
+            height=550,
+            margin=dict(l=40, r=40, t=70, b=40)
+        )
+
+        st.plotly_chart(
+            fig_metallicity,
+            use_container_width=True
+        )
+
+        st.caption(
+            f"Showing {len(metallicity_data):,} host stars with "
+            "available metallicity and mass measurements. "
+            "The dashed trendline represents an ordinary least-squares "
+            "linear regression."
         )
 
 # =====================================
