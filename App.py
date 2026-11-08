@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from scipy.stats import pearsonr, spearmanr
+import textwrap
+import streamlit.components.v1 as components
 
 def evaluate_supernova_candidate(
     initial_mass=None,
@@ -205,16 +207,207 @@ stellar_data = (
 # 3. NAVIGATION
 # =====================================
 
-page = st.sidebar.radio(
-    "Navigation",
-    [
-        "Home",
-        "Gaia Star Explorer",
-        "Exoplanet Analysis",
-        "Supernova Remnants",
-        "Stellar Evolution Simulator"
-    ]
-)
+# =====================================
+# SPACE-THEMED SIDEBAR NAVIGATION
+# =====================================
+
+# Store the currently selected page
+if "selected_page" not in st.session_state:
+    st.session_state.selected_page = "Home"
+
+# Sidebar styling
+st.sidebar.markdown("""
+    <style>
+    [data-testid="stSidebar"] {
+        background: linear-gradient(
+            180deg,
+            #080d20 0%,
+            #111a35 100%
+        );
+    }
+
+    [data-testid="stSidebar"] h1 {
+        color: #dceaff;
+    }
+
+    </style>
+""", unsafe_allow_html=True)
+
+st.sidebar.title("🌌 STAR EXPLORER")
+st.sidebar.caption("YOUR JOURNEY THROUGH THE COSMOS")
+
+st.sidebar.divider()
+
+# Navigation buttons
+if st.sidebar.button(
+    "🌍  Home",
+    use_container_width=True,
+    type="primary" if st.session_state.selected_page == "Home" else "secondary"
+):
+    st.session_state.selected_page = "Home"
+
+if st.sidebar.button(
+    "🔭  Gaia Star Explorer",
+    use_container_width=True,
+    type="primary" if st.session_state.selected_page == "Gaia Star Explorer" else "secondary"
+):
+    st.session_state.selected_page = "Gaia Star Explorer"
+
+if st.sidebar.button(
+    "🪐  Exoplanet Analysis",
+    use_container_width=True,
+    type="primary" if st.session_state.selected_page == "Exoplanet Analysis" else "secondary"
+):
+    st.session_state.selected_page = "Exoplanet Analysis"
+
+if st.sidebar.button(
+    "💥  Supernova Remnants",
+    use_container_width=True,
+    type="primary" if st.session_state.selected_page == "Supernova Remnants" else "secondary"
+):
+    st.session_state.selected_page = "Supernova Remnants"
+
+if st.sidebar.button(
+    "✨  Stellar Evolution Simulator",
+    use_container_width=True,
+    type="primary" if st.session_state.selected_page == "Stellar Evolution Simulator" else "secondary"
+):
+    st.session_state.selected_page = "Stellar Evolution Simulator"
+
+# Current page used by the existing app
+page = st.session_state.selected_page
+
+
+
+# =====================================
+# SELECTED PAGE ANIMATION
+# =====================================
+
+if page == "Home":
+
+    components.html(
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {
+                    margin: 0;
+                    background: transparent;
+                    overflow: hidden;
+                }
+
+                .space-scene {
+                    position: relative;
+                    height: 155px;
+                    width: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    overflow: hidden;
+                }
+
+                .planet {
+                    position: absolute;
+                    width: 75px;
+                    height: 75px;
+                    border-radius: 50%;
+                    background: radial-gradient(
+                        circle at 30% 30%,
+                        #b8e7ff,
+                        #5689dc 45%,
+                        #242b75 85%
+                    );
+                    box-shadow: 0 0 25px #659dff;
+                    animation: glow 3s ease-in-out infinite alternate;
+                }
+
+                .orbit {
+                    position: absolute;
+                    width: 125px;
+                    height: 125px;
+                    border: 1px solid rgba(150, 190, 255, 0.5);
+                    border-radius: 50%;
+                }
+
+                .moon-orbit {
+                    position: absolute;
+                    width: 125px;
+                    height: 125px;
+                    animation: rotate 5s linear infinite;
+                }
+
+                .moon {
+                    position: absolute;
+                    top: -5px;
+                    left: 50%;
+                    width: 15px;
+                    height: 15px;
+                    border-radius: 50%;
+                    background: #e5eaff;
+                    box-shadow: 0 0 12px #a8caff;
+                }
+
+                .star {
+                    position: absolute;
+                    color: white;
+                    animation: twinkle 2s ease-in-out infinite alternate;
+                }
+
+                .star1 {
+                    top: 20px;
+                    left: 15%;
+                }
+
+                .star2 {
+                    bottom: 20px;
+                    right: 15%;
+                    animation-delay: 1s;
+                }
+
+                .star3 {
+                    top: 35px;
+                    right: 20%;
+                    animation-delay: 0.5s;
+                }
+
+                @keyframes rotate {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+
+                @keyframes glow {
+                    from { box-shadow: 0 0 15px #659dff; }
+                    to { box-shadow: 0 0 35px #659dff, 0 0 50px #4266c5; }
+                }
+
+                @keyframes twinkle {
+                    from { opacity: 0.3; }
+                    to { opacity: 1; }
+                }
+            </style>
+        </head>
+
+        <body>
+            <div class="space-scene">
+                <span class="star star1">✦</span>
+                <span class="star star2">✧</span>
+                <span class="star star3">✦</span>
+
+                <div class="orbit"></div>
+                <div class="planet"></div>
+
+                <div class="moon-orbit">
+                    <div class="moon"></div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """,
+        height=160,
+        scrolling=False
+    )
+
 
 # =====================================
 # 4. HOME DASHBOARD
@@ -245,22 +438,148 @@ if page == "Home":
 
     st.subheader("✦ Research Overview")
 
-    col1, col2, col3 = st.columns(3)
+    # Get the actual dataset counts
+    gaia_count = len(starsds) if starsds is not None else -1
+    exoplanet_count = len(exoplanetds) if exoplanetds is not None else -1
+    snr_count = len(snrds) if snrds is not None else -1
 
-    col1.metric(
-        "🌟 Gaia Stars",
-        f"{len(starsds):,}" if starsds is not None else "Not loaded"
+    # Animated statistics cards
+    counter_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {
+                margin: 0;
+                background: transparent;
+                font-family: Arial, sans-serif;
+            }
+
+            .stats-container {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 14px;
+                padding: 5px;
+            }
+
+            .stat-card {
+                background: linear-gradient(145deg, #17264b, #10172f);
+                border: 1px solid rgba(115, 160, 255, 0.35);
+                border-radius: 14px;
+                padding: 22px 10px;
+                text-align: center;
+                box-shadow: 0 0 15px rgba(65, 105, 225, 0.12);
+            }
+
+            .stat-title {
+                color: #b9d5ff;
+                font-size: 13px;
+                font-weight: bold;
+                margin-bottom: 15px;
+            }
+
+            .stat-number {
+                color: #78bdff;
+                font-size: 30px;
+                font-weight: bold;
+                text-shadow: 0 0 12px rgba(80, 160, 255, 0.5);
+            }
+
+            .stat-description {
+                color: #8499c4;
+                font-size: 11px;
+                margin-top: 8px;
+            }
+
+            @media (max-width: 500px) {
+                .stats-container {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <div class="stats-container">
+
+            <div class="stat-card">
+                <div class="stat-title">🌟 Gaia Stars</div>
+                <div class="stat-number" data-target="__GAIA__">0</div>
+                <div class="stat-description">Stars in dataset</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-title">🪐 Exoplanet Records</div>
+                <div class="stat-number" data-target="__EXOPLANETS__">0</div>
+                <div class="stat-description">Planet records</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-title">💥 Supernova Remnants</div>
+                <div class="stat-number" data-target="__SNR__">0</div>
+                <div class="stat-description">Remnants in dataset</div>
+            </div>
+
+        </div>
+
+        <script>
+            const counters = document.querySelectorAll(".stat-number");
+
+            counters.forEach(counter => {
+                const target = Number(counter.dataset.target);
+
+                if (target < 0) {
+                    counter.textContent = "Not loaded";
+                    return;
+                }
+
+                const duration = 1800;
+                const startTime = performance.now();
+
+                function updateCounter(currentTime) {
+                    const progress = Math.min(
+                        (currentTime - startTime) / duration,
+                        1
+                    );
+
+                    // Smooth count-up animation
+                    const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+                    const currentValue = Math.floor(
+                        easedProgress * target
+                    );
+
+                    counter.textContent = currentValue.toLocaleString();
+
+                    if (progress < 1) {
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        counter.textContent = target.toLocaleString();
+                    }
+                }
+
+                requestAnimationFrame(updateCounter);
+            });
+        </script>
+
+    </body>
+    </html>
+    """
+
+    counter_html = (
+        counter_html
+        .replace("__GAIA__", str(gaia_count))
+        .replace("__EXOPLANETS__", str(exoplanet_count))
+        .replace("__SNR__", str(snr_count))
     )
 
-    col2.metric(
-        "🪐 Exoplanet Records",
-        f"{len(exoplanetds):,}" if exoplanetds is not None else "Not loaded"
+    components.html(
+        counter_html,
+        height=155,
+        scrolling=False
     )
 
-    col3.metric(
-        "💥 Supernova Remnants",
-        f"{len(snrds):,}" if snrds is not None else "Not loaded"
-    )
 
 # =====================================
 # 5. GAIA STAR EXPLORER
@@ -269,6 +588,14 @@ if page == "Home":
 elif page == "Gaia Star Explorer":
 
     st.header("Gaia Stellar Properties")
+
+    # Interactive Plotly chart settings
+    chart_config = {
+        "displayModeBar": True,
+        "displaylogo": False,
+        "scrollZoom": True,
+        "modeBarButtonsToAdd": ["select2d", "lasso2d"]
+    }
 
     if starsds is not None:
 
@@ -325,7 +652,8 @@ elif page == "Gaia Star Explorer":
 
         st.plotly_chart(
             fig_hr,
-            use_container_width=True
+            use_container_width=True,
+            config=chart_config
         )
 
         st.caption(
@@ -381,7 +709,8 @@ elif page == "Gaia Star Explorer":
 
         st.plotly_chart(
             fig_mass,
-            use_container_width=True
+            use_container_width=True,
+            config=chart_config
         )
 
         # Summary statistics
@@ -427,37 +756,95 @@ elif page == "Gaia Star Explorer":
             subset=["st_mass", "st_age"]
         ).copy()
 
+        # Divide stars into six age groups
+        mass_age_data["age_group"] = pd.qcut(
+            mass_age_data["st_age"],
+            q=6,
+            labels=False,
+            duplicates="drop"
+        )
+
+        # Prepare cumulative animation frames
+        animation_frames = []
+        age_labels = []
+
+        age_groups = sorted(mass_age_data["age_group"].dropna().unique())
+
+        for group in age_groups:
+
+            # Get the maximum age reached in this frame
+            max_age = mass_age_data.loc[
+                mass_age_data["age_group"] == group,
+                "st_age"
+            ].max()
+
+            frame_label = f"Up to {max_age:.1f} Gyr"
+            age_labels.append(frame_label)
+
+            # Reveal all stars up to the current age group
+            frame_data = mass_age_data[
+                mass_age_data["age_group"] <= group
+            ].copy()
+
+            frame_data["age_progression"] = frame_label
+
+            animation_frames.append(frame_data)
+
+        animated_mass_age = pd.concat(
+            animation_frames,
+            ignore_index=True
+        )
+
         fig_mass_age = px.scatter(
-            mass_age_data,
+            animated_mass_age,
             x="st_mass",
             y="st_age",
             color="mh_gspphot",
+            animation_frame="age_progression",
+            animation_group="source_id",
             hover_data=[
                 "source_id",
                 "st_teff",
                 "st_rad"
             ],
             color_continuous_scale="Plasma",
+            category_orders={
+                "age_progression": age_labels
+            },
+            range_x=[
+                mass_age_data["st_mass"].min() * 0.95,
+                mass_age_data["st_mass"].max() * 1.05
+            ],
+            range_y=[
+                mass_age_data["st_age"].min() * 0.95,
+                mass_age_data["st_age"].max() * 1.05
+            ],
             labels={
                 "st_mass": "Stellar Mass (Solar Masses)",
                 "st_age": "Stellar Age (Gyr)",
                 "mh_gspphot": "Metallicity (dex)",
                 "source_id": "Gaia Source ID",
                 "st_teff": "Effective Temperature (K)",
-                "st_rad": "Stellar Radius (Solar Radii)"
+                "st_rad": "Stellar Radius (Solar Radii)",
+                "age_progression": "Age Progression"
             },
-            title="Stellar Mass vs. Stellar Age"
+            title="Stellar Mass vs. Stellar Age — Animated Age Progression"
         )
 
         fig_mass_age.update_layout(
             template="plotly_dark",
-            height=550,
+            height=600,
+            transition=dict(
+                duration=500,
+                easing="cubic-in-out"
+            ),
             margin=dict(l=40, r=40, t=70, b=40)
         )
 
         st.plotly_chart(
             fig_mass_age,
-            use_container_width=True
+            use_container_width=True,
+            config=chart_config
         )
 
         st.caption(
@@ -513,7 +900,8 @@ elif page == "Gaia Star Explorer":
 
         st.plotly_chart(
             fig_metallicity,
-            use_container_width=True
+            use_container_width=True,
+            config=chart_config
         )
 
         st.caption(
