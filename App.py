@@ -831,6 +831,7 @@ elif page == "Supernova Remnants":
 # 8. STELLAR EVOLUTION SIMULATOR
 # =====================================
 
+
 elif page == "Stellar Evolution Simulator":
 
     st.header("Supernova Progenitor Screening")
@@ -844,6 +845,10 @@ elif page == "Stellar Evolution Simulator":
         "This is a rule-based screening tool using an approximate "
         "initial mass threshold of 8 solar masses."
     )
+
+    # =====================================
+    # MANUAL STAR EVALUATION
+    # =====================================
 
     st.subheader("Manual Star Evaluation")
 
@@ -921,34 +926,140 @@ elif page == "Stellar Evolution Simulator":
             "Evaluate Star"
         )
 
-        if submitted:
+    # Manual evaluation happens OUTSIDE the form
 
-            # Treat zero as unknown for initial mass
-            evaluated_mass = (
-                initial_mass if initial_mass > 0 else None
-            )
+    if submitted:
 
-            evaluated_uncertainty = (
-                mass_uncertainty if mass_uncertainty > 0 else None
-            )
+        # Treat zero as unknown for initial mass
+        evaluated_mass = (
+            initial_mass if initial_mass > 0 else None
+        )
 
-            result = evaluate_supernova_candidate(
-                initial_mass=evaluated_mass,
-                mass_uncertainty=evaluated_uncertainty
-            )
+        evaluated_uncertainty = (
+            mass_uncertainty if mass_uncertainty > 0 else None
+        )
 
-            st.divider()
+        result = evaluate_supernova_candidate(
+            initial_mass=evaluated_mass,
+            mass_uncertainty=evaluated_uncertainty
+        )
 
-            st.subheader("Screening Results")
+        st.divider()
 
-            st.metric(
-                "Evaluation",
-                result["result"]
-            )
+        st.subheader("Screening Results")
 
-            st.write("**Reason:**", result["reason"])
+        st.metric(
+            "Evaluation",
+            result["result"]
+        )
 
-            st.caption(
-                "This is an approximate screening result, "
-                "not a prediction or guarantee of a supernova."
-            )
+        st.write("**Reason:**", result["reason"])
+
+        st.caption(
+            "This is an approximate screening result, "
+            "not a prediction or guarantee of a supernova."
+        )
+
+    # =====================================
+    # DATABASE MODE
+    # =====================================
+
+    st.divider()
+
+    st.subheader("Database Mode")
+
+    st.write(
+        "Search for an existing star using its Gaia DR3 source ID."
+    )
+
+    gaia_id = st.text_input(
+        "Gaia DR3 Source ID",
+        placeholder="Enter a Gaia source ID..."
+    )
+
+    search_star = st.button("Search Star")
+
+    if search_star:
+
+        if gaia_id.strip() == "":
+            st.warning("Please enter a Gaia source ID.")
+
+        else:
+
+            star_match = starsds[
+                starsds["source_id"].astype(str).str.strip()
+                == gaia_id.strip()
+            ]
+
+            if not star_match.empty:
+
+                star = star_match.iloc[0]
+
+                st.success("Star found in the Gaia dataset!")
+
+                st.subheader("Retrieved Stellar Properties")
+
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.metric(
+                        "Temperature",
+                        f"{star['teff_gspphot']:,.0f} K"
+                        if pd.notna(star["teff_gspphot"])
+                        else "Unavailable"
+                    )
+
+                with col2:
+                    st.metric(
+                        "Metallicity",
+                        f"{star['mh_gspphot']:.2f} dex"
+                        if pd.notna(star['mh_gspphot'])
+                        else "Unavailable"
+                    )
+
+                with col3:
+                    st.metric(
+                        "Surface Gravity",
+                        f"{star['logg_gspphot']:.2f}"
+                        if pd.notna(star['logg_gspphot'])
+                        else "Unavailable"
+                    )
+
+                st.write(
+                    "**Gaia Source ID:**",
+                    star["source_id"]
+                )
+
+                st.write(
+                    "**Distance:**",
+                    f"{star['distance_pc']:.2f} parsecs"
+                    if pd.notna(star['distance_pc'])
+                    else "Unavailable"
+                )
+
+                st.divider()
+
+                st.subheader("Supernova Progenitor Screening")
+
+                database_result = evaluate_supernova_candidate(
+                    initial_mass=None
+                )
+
+                st.warning(database_result["result"])
+
+                st.write(
+                    "**Reason:**",
+                    database_result["reason"]
+                )
+
+                st.caption(
+                    "The Gaia dataset does not provide initial stellar "
+                    "mass. Therefore, this star cannot be evaluated "
+                    "against the 8-solar-mass screening threshold."
+                )
+
+            else:
+
+                st.error(
+                    "No star with that Gaia source ID was found."
+                )
