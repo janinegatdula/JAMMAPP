@@ -14,33 +14,130 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🌌 Star Explorer")
-st.caption("Stellar Data Analysis and Evolution Exploration")
 
 # =====================================
-# 2. DATASET UPLOADS
+# COSMIC VISUAL THEME
 # =====================================
 
-st.sidebar.header("Dataset Management")
+st.markdown("""
+<style>
 
-gaia_file = st.sidebar.file_uploader(
-    "Upload Gaia DR3 Dataset",
-    type=["csv"]
+.stApp {
+    background:
+        radial-gradient(ellipse at 15% 15%, rgba(89, 45, 160, 0.25), transparent 40%),
+        radial-gradient(ellipse at 85% 75%, rgba(25, 91, 180, 0.20), transparent 40%),
+        linear-gradient(135deg, #070817, #11102B 55%, #080B1C);
+    color: #F4F0FF;
+}
+
+.block-container {
+    padding-top: 2.5rem;
+    padding-bottom: 3rem;
+}
+
+h1, h2, h3 {
+    color: #F4F0FF !important;
+    font-weight: 700 !important;
+}
+
+[data-testid="stSidebar"] {
+    background: #0B0A20;
+    border-right: 1px solid rgba(153, 115, 255, 0.2);
+}
+
+[data-testid="stMetric"] {
+    background: linear-gradient(
+        145deg,
+        rgba(49, 37, 91, 0.75),
+        rgba(20, 29, 65, 0.75)
+    );
+    border: 1px solid rgba(153, 115, 255, 0.3);
+    border-radius: 16px;
+    padding: 20px;
+}
+
+[data-testid="stMetricValue"] {
+    color: #AFA0FF;
+}
+
+.stButton > button {
+    background: linear-gradient(90deg, #7046D8, #357BEA);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 0.5rem 1rem;
+    transition: 0.3s ease;
+}
+
+.stButton > button:hover {
+    box-shadow: 0 0 18px rgba(133, 92, 255, 0.55);
+    border: none;
+    transform: translateY(-2px);
+}
+
+hr {
+    border-color: rgba(153, 115, 255, 0.2);
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =====================================
+# LOAD RESEARCH DATASETS
+# =====================================
+
+starsds = pd.read_csv("data/gaia_dr3_stars_within_500_light_years.csv", dtype={"source_id": str}) 
+exoplanetds = pd.read_csv("data/nasa_exoplanet_archive_confirmed_planets.csv", dtype={"gaia_dr3_id": str}) 
+snrds = pd.read_csv("data/SUPERNOVA_REMNANTS.csv", skiprows=1) 
+
+# =====================================
+# MATCH GAIA AND EXOPLANET DATA
+# =====================================
+
+# Clean Gaia source IDs
+starsds["source_id"] = starsds["source_id"].str.strip()
+
+# Remove the "Gaia DR3 " prefix from NASA Gaia IDs
+exoplanetds["gaia_dr3_id"] = (
+    exoplanetds["gaia_dr3_id"]
+    .str.replace("Gaia DR3 ", "", regex=False)
+    .str.strip()
 )
 
-planet_file = st.sidebar.file_uploader(
-    "Upload NASA Exoplanet Dataset",
-    type=["csv"]
+# Match exoplanet records to their Gaia host stars
+combined_data = exoplanetds.merge(
+    starsds,
+    left_on="gaia_dr3_id",
+    right_on="source_id",
+    how="inner",
+    suffixes=("_planet", "_gaia")
 )
 
-snr_file = st.sidebar.file_uploader(
-    "Upload MOST-SNRcat Dataset",
-    type=["csv"]
-)
+# =====================================
+# CREATE UNIQUE STELLAR DATASET
+# =====================================
 
-starsds = pd.read_csv(gaia_file) if gaia_file else None
-exoplanetds = pd.read_csv(planet_file) if planet_file else None
-snrds = pd.read_csv(snr_file) if snr_file else None
+stellar_columns = [
+    "st_mass",
+    "st_age",
+    "st_teff",
+    "st_rad",
+    "st_lum",
+    "teff_gspphot",
+    "logg_gspphot",
+    "mh_gspphot",
+    "abs_g_mag",
+    "bp_rp",
+    "distance_pc"
+]
+
+# One row per unique host star
+stellar_data = (
+    combined_data
+    .groupby("source_id")[stellar_columns]
+    .median()
+    .reset_index()
+)
 
 # =====================================
 # 3. NAVIGATION
@@ -63,34 +160,45 @@ page = st.sidebar.radio(
 
 if page == "Home":
 
-    st.header("Astronomical Research Dashboard")
+    st.markdown("""
+    <style>
+    .hero {
+        background: linear-gradient(120deg, #402477, #172D65);
+        padding: 45px;
+        border-radius: 20px;
+        text-align: center;
+        border: 1px solid rgba(170, 140, 255, 0.4);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="hero"><h1 style="color:white;">'
+        'POSSIBLE FUTURE<br>EVOLUTION OF STARS'
+        '</h1><p style="color:white;">'
+        'Explore stellar properties and the mysteries of the cosmos.'
+        '</p></div>',
+        unsafe_allow_html=True
+    )
+
+    st.subheader("✦ Research Overview")
 
     col1, col2, col3 = st.columns(3)
 
     col1.metric(
-        "Gaia Stars",
-        len(starsds) if starsds is not None else "Not loaded"
+        "🌟 Gaia Stars",
+        f"{len(starsds):,}" if starsds is not None else "Not loaded"
     )
 
     col2.metric(
-        "Exoplanet Records",
-        len(exoplanetds) if exoplanetds is not None else "Not loaded"
+        "🪐 Exoplanet Records",
+        f"{len(exoplanetds):,}" if exoplanetds is not None else "Not loaded"
     )
 
     col3.metric(
-        "Supernova Remnants",
-        len(snrds) if snrds is not None else "Not loaded"
+        "💥 Supernova Remnants",
+        f"{len(snrds):,}" if snrds is not None else "Not loaded"
     )
-
-    st.subheader("Research Objective")
-
-    st.write("""
-    Investigate relationships between stellar properties,
-    exoplanet characteristics, and supernova remnants.
-
-    Explore possible stellar evolutionary outcomes using
-    stellar evolution models.
-    """)
 
 # =====================================
 # 5. GAIA STAR EXPLORER
@@ -102,41 +210,66 @@ elif page == "Gaia Star Explorer":
 
     if starsds is not None:
 
-        st.dataframe(starsds, use_container_width=True)
+        # =====================================
+        # HERTZSPRUNG-RUSSELL DIAGRAM
+        # =====================================
 
-        st.subheader("Hertzsprung-Russell Diagram")
+        st.subheader("✦ Hertzsprung–Russell Diagram")
 
-        required = ["teff_gspphot", "abs_g_mag"]
+        st.write(
+            "Explore the relationship between stellar temperature "
+            "and absolute magnitude, with metallicity represented by color."
+        )
 
-        if all(c in starsds.columns for c in required):
+        # Keep only records with the required values
+        hr_data = stellar_data.dropna(
+            subset=["teff_gspphot", "abs_g_mag"]
+        ).copy()
 
-            plot_data = starsds.dropna(subset=required)
+        fig_hr = px.scatter(
+            hr_data,
+            x="teff_gspphot",
+            y="abs_g_mag",
+            color="mh_gspphot",
+            hover_data=[
+                "source_id",
+                "st_mass",
+                "st_age"
+            ],
+            color_continuous_scale="Plasma",
+            labels={
+                "teff_gspphot": "Effective Temperature (K)",
+                "abs_g_mag": "Absolute G Magnitude",
+                "mh_gspphot": "Metallicity (dex)",
+                "source_id": "Gaia Source ID",
+                "st_mass": "Stellar Mass (Solar Masses)",
+                "st_age": "Stellar Age (Gyr)"
+            },
+            title="Stellar Temperature vs Absolute Magnitude"
+        )
 
-            fig = px.scatter(
-                plot_data,
-                x="teff_gspphot",
-                y="abs_g_mag",
-                color="mh_gspphot"
-                if "mh_gspphot" in plot_data.columns
-                else None,
-                hover_data=["source_id"]
-                if "source_id" in plot_data.columns
-                else None,
-                labels={
-                    "teff_gspphot": "Temperature (K)",
-                    "abs_g_mag": "Absolute G Magnitude",
-                    "mh_gspphot": "Metallicity"
-                },
-                title="Stellar Distribution"
-            )
+        # Traditional astronomical HR diagram orientation
+        fig_hr.update_xaxes(autorange="reversed")
+        fig_hr.update_yaxes(autorange="reversed")
 
-            fig.update_xaxes(autorange="reversed")
-            fig.update_yaxes(autorange="reversed")
+        fig_hr.update_layout(
+            template="plotly_dark",
+            height=650,
+            coloraxis_colorbar=dict(
+                title="Metallicity (dex)"
+            ),
+            margin=dict(l=40, r=40, t=70, b=40)
+        )
 
-            st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(
+            fig_hr,
+            use_container_width=True
+        )
 
-    else:
-        st.info("Upload your Gaia dataset to begin.")
+        st.caption(
+            f"Showing {len(hr_data):,} matched host stars with "
+            "available temperature and absolute magnitude measurements."
+        )
 
 # =====================================
 # 6. EXOPLANET ANALYSIS
@@ -147,8 +280,6 @@ elif page == "Exoplanet Analysis":
     st.header("Exoplanet Correlations")
 
     if exoplanetds is not None:
-
-        st.dataframe(exoplanetds, use_container_width=True)
 
         st.subheader("Planet Radius vs Orbital Period")
 
@@ -203,8 +334,6 @@ elif page == "Supernova Remnants":
     st.header("Supernova Remnant Explorer")
 
     if snrds is not None:
-
-        st.dataframe(snrds, use_container_width=True)
 
         if all(c in snrds.columns for c in ["Lii", "bii"]):
 
