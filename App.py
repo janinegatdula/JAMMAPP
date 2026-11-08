@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+from scipy.stats import pearsonr, spearmanr
 
 
 # =====================================
@@ -468,53 +469,177 @@ elif page == "Gaia Star Explorer":
 
 elif page == "Exoplanet Analysis":
 
-    st.header("Exoplanet Correlations")
+            st.subheader("Stellar Mass vs Exoplanet Radius")
 
-    if exoplanetds is not None:
+            planet_data = combined_data.dropna(
+                subset=["st_mass", "pl_rade", "mh_gspphot"]
+            ).copy()
 
-        st.subheader("Planet Radius vs Orbital Period")
-
-        if all(c in exoplanetds.columns
-               for c in ["pl_rade", "pl_orbper"]):
-
-            fig = px.scatter(
-                exoplanetds.dropna(
-                    subset=["pl_rade", "pl_orbper"]
-                ),
-                x="pl_orbper",
-                y="pl_rade",
-                hover_name="pl_name"
-                if "pl_name" in exoplanetds.columns
-                else None,
-                labels={
-                    "pl_orbper": "Orbital Period (days)",
-                    "pl_rade": "Planet Radius (Earth radii)"
-                }
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-
-        st.subheader("Host Star Properties")
-
-        if all(c in exoplanetds.columns
-               for c in ["st_mass", "st_age"]):
-
-            fig = px.scatter(
-                exoplanetds.dropna(
-                    subset=["st_mass", "st_age"]
-                ),
+            fig_planet = px.scatter(
+                planet_data,
                 x="st_mass",
-                y="st_age",
+                y="pl_rade",
+                color="mh_gspphot",
+                hover_data=[
+                    "pl_name",
+                    "st_age",
+                    "pl_orbper"
+                ],
+                color_continuous_scale="Plasma",
                 labels={
-                    "st_mass": "Stellar Mass (Solar Masses)",
-                    "st_age": "Stellar Age"
-                }
+                    "st_mass": "Host Star Mass (Solar Masses)",
+                    "pl_rade": "Planet Radius (Earth Radii)",
+                    "mh_gspphot": "Host Star Metallicity (dex)",
+                    "pl_name": "Planet Name",
+                    "st_age": "Host Star Age (Gyr)",
+                    "pl_orbper": "Orbital Period (Days)"
+                },
+                title="Host Star Mass vs. Exoplanet Radius"
             )
 
-            st.plotly_chart(fig, use_container_width=True)
+            fig_planet.update_layout(
+                template="plotly_dark",
+                height=600,
+                margin=dict(l=40, r=40, t=70, b=40)
+            )
 
-    else:
-        st.info("Upload your NASA Exoplanet dataset.")
+            st.plotly_chart(fig_planet, use_container_width=True)
+
+            st.caption(
+                f"Showing {len(planet_data):,} planets with available "
+                "host star mass, planet radius, and metallicity measurements. "
+                "Each point represents one confirmed exoplanet."
+            )
+
+            st.divider()
+
+            st.subheader("Exoplanet and Host Star Properties")
+
+            # Prepare data for the additional notebook analyses
+            analysis_data = combined_data.dropna(
+                subset=["mh_gspphot", "pl_rade"]
+            ).copy()
+
+            st.write(
+                f"Records available for analysis: "
+                f"{len(analysis_data):,}"
+            )
+
+            st.subheader("Host Star Metallicity Distribution")
+
+            fig_metallicity = px.histogram(
+                analysis_data,
+                x="mh_gspphot",
+                nbins=30,
+                labels={
+                    "mh_gspphot": "Stellar Metallicity (dex)",
+                    "count": "Number of Exoplanets"
+                },
+                title="Distribution of Host Star Metallicity"
+            )
+
+            fig_metallicity.update_layout(
+                template="plotly_dark",
+                height=500
+            )
+
+            st.plotly_chart(
+                fig_metallicity,
+                use_container_width=True
+            )
+
+            st.subheader("Exoplanet Radius Distribution")
+
+            fig_radius = px.histogram(
+                analysis_data,
+                x="pl_rade",
+                nbins=30,
+                labels={
+                    "pl_rade": "Planet Radius (Earth Radii)",
+                    "count": "Number of Exoplanets"
+                },
+                title="Distribution of Confirmed Exoplanet Radii"
+            )
+
+            fig_radius.update_layout(
+                template="plotly_dark",
+                height=500
+            )
+
+            st.plotly_chart(
+                fig_radius,
+                use_container_width=True
+            )
+
+            st.subheader("Stellar Metallicity vs. Exoplanet Radius")
+
+            fig_correlation = px.scatter(
+                analysis_data,
+                x="mh_gspphot",
+                y="pl_rade",
+                trendline="ols",
+                hover_data=[
+                    "pl_name",
+                    "st_mass",
+                    "st_age"
+                ],
+                labels={
+                    "mh_gspphot": "Host Star Metallicity (dex)",
+                    "pl_rade": "Exoplanet Radius (Earth Radii)",
+                    "pl_name": "Planet Name",
+                    "st_mass": "Host Star Mass (Solar Masses)",
+                    "st_age": "Host Star Age (Gyr)"
+                },
+                title="Host Star Metallicity vs. Exoplanet Radius"
+            )
+
+            fig_correlation.update_layout(
+                template="plotly_dark",
+                height=600
+            )
+
+            st.plotly_chart(
+                fig_correlation,
+                use_container_width=True
+            )
+
+            st.divider()
+
+            st.subheader("Correlation Analysis")
+
+            # Calculate correlation coefficients
+            pearson_corr, pearson_p = pearsonr(
+                analysis_data["mh_gspphot"],
+                analysis_data["pl_rade"]
+            )
+
+            spearman_corr, spearman_p = spearmanr(
+                analysis_data["mh_gspphot"],
+                analysis_data["pl_rade"]
+            )
+
+            # Display correlation results
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.metric(
+                    "Pearson Correlation",
+                    f"{pearson_corr:.4f}"
+                )
+
+                st.caption(
+                    f"P-value: {pearson_p:.6f}"
+                )
+
+            with col2:
+                st.metric(
+                    "Spearman Correlation",
+                    f"{spearman_corr:.4f}"
+                )
+
+                st.caption(
+                    f"P-value: {spearman_p:.8f}"
+                )
 
 # =====================================
 # 7. SUPERNOVA REMNANTS
@@ -526,24 +651,121 @@ elif page == "Supernova Remnants":
 
     if snrds is not None:
 
-        if all(c in snrds.columns for c in ["Lii", "bii"]):
+        # Prepare Gaia star coordinates
+        gaia_coordinates = starsds.dropna(
+            subset=["l", "b"]
+        ).copy()
 
-            fig = px.scatter(
-                snrds.dropna(subset=["Lii", "bii"]),
-                x="Lii",
-                y="bii",
-                hover_name="Name" if "Name" in snrds.columns else None,
-                title="Galactic Distribution of Supernova Remnants",
+        # Prepare Supernova Remnant coordinates
+        snr_coordinates = snrds.dropna(
+            subset=["lii", "bii"]
+        ).copy()
+
+        # Plot both datasets
+        fig = px.scatter(
+            gaia_coordinates,
+            x="l",
+            y="b",
+            hover_name="source_id",
+            labels={
+                "l": "Galactic Longitude",
+                "b": "Galactic Latitude"
+            },
+            title="Galactic Distribution of Gaia Stars and Supernova Remnants"
+        )
+
+        # Add Supernova Remnants
+        fig.add_scatter(
+            x=snr_coordinates["lii"],
+            y=snr_coordinates["bii"],
+            mode="markers",
+            name="Supernova Remnants",
+            marker=dict(
+                symbol="x",
+                size=9
+            ),
+            text=snr_coordinates["Name"]
+            if "Name" in snr_coordinates.columns
+            else None,
+            hovertemplate=(
+                "Supernova Remnant: %{text}<br>"
+                "Longitude: %{x}<br>"
+                "Latitude: %{y}"
+                "<extra></extra>"
+            )
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            height=600,
+            xaxis_title="Galactic Longitude (degrees)",
+            yaxis_title="Galactic Latitude (degrees)",
+            legend_title="Dataset"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.caption(
+            "Gaia stars are shown as circles, while known supernova "
+            "remnants are shown as crosses. Overlapping sky positions "
+            "do not necessarily indicate a physical association."
+        )
+
+        st.divider()
+
+        st.subheader("Potential Supernova Candidates")
+
+        # Filter potential high-mass supernova progenitors
+        supernova_candidates = stellar_data[
+            stellar_data["st_mass"] >= 8
+        ].dropna(
+            subset=["st_mass", "st_age", "teff_gspphot"]
+        )
+
+        if not supernova_candidates.empty:
+
+            fig_candidates = px.scatter(
+                supernova_candidates,
+                x="st_mass",
+                y="st_age",
+                color="teff_gspphot",
+                hover_data=[
+                    "source_id",
+                    "logg_gspphot",
+                    "mh_gspphot"
+                ],
+                title="Potential High-Mass Supernova Progenitors",
                 labels={
-                    "Lii": "Galactic Longitude",
-                    "bii": "Galactic Latitude"
+                    "st_mass": "Stellar Mass (Solar Masses)",
+                    "st_age": "Stellar Age (Gyr)",
+                    "teff_gspphot": "Stellar Temperature (K)"
                 }
             )
 
-            st.plotly_chart(fig, use_container_width=True)
+            fig_candidates.update_layout(
+                template="plotly_dark",
+                height=600
+            )
+
+            st.plotly_chart(
+                fig_candidates,
+                use_container_width=True
+            )
+
+        else:
+
+            st.info(
+                "No potential supernova candidates were identified "
+                "using the current stellar mass threshold of 8 solar masses."
+            )
+
+            st.caption(
+                "The available Gaia host-star sample contains no "
+                "stars meeting this selection criterion."
+            )
 
     else:
-        st.info("Upload your MOST-SNRcat dataset.")
+        st.info("MOST-SNRcat dataset is unavailable.")
 
 # =====================================
 # 8. STELLAR EVOLUTION SIMULATOR
