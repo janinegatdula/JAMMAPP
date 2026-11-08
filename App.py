@@ -143,25 +143,67 @@ hr {
 
 </style>
 """, unsafe_allow_html=True)
-
 # =====================================
 # LOAD RESEARCH DATASETS
 # =====================================
 
-starsds = pd.read_csv("data/gaia_dr3_stars_within_500_light_years.csv", dtype={"source_id": str}) 
-exoplanetds = pd.read_csv("data/nasa_exoplanet_archive_confirmed_planets.csv", dtype={"gaia_dr3_id": str}) 
-snrds = pd.read_csv("data/SUPERNOVA_REMNANTS.csv", skiprows=1) 
+starsds = pd.read_csv("data/gaia_dr3_stars_within_500_light_years.csv")
+exoplanetds = pd.read_csv("data/nasa_exoplanet_archive_confirmed_planets.csv")
+snrds = pd.read_csv("data/SUPERNOVA_REMNANTS.csv", skiprows=1)
 
 # =====================================
 # MATCH GAIA AND EXOPLANET DATA
 # =====================================
 
-# Clean Gaia source IDs
-starsds["source_id"] = starsds["source_id"].str.strip()
+# Check if the stars dataset was loaded correctly (not a git LFS pointer)
+if len(starsds.columns) == 1 and 'version' in starsds.columns[0].lower():
+    raise ValueError(
+        "The stars dataset file is a git LFS pointer, not the actual data. "
+        "Please run: git lfs pull"
+    )
 
-# Remove the "Gaia DR3 " prefix from NASA Gaia IDs
+# Find the Gaia source ID column in stars dataset
+# Common column names: source_id, gaia_source_id, Gaia_source_id, etc.
+source_id_col = None
+for col in starsds.columns:
+    if col.lower().replace(" ", "_").replace("-", "_") in ["source_id", "gaia_source_id", "gaia_id", "dr3_source_id"]:
+        source_id_col = col
+        break
+
+if source_id_col is None:
+    # If no matching column found, check if there's a column that looks like an ID
+    for col in starsds.columns:
+        if "id" in col.lower():
+            source_id_col = col
+            break
+
+if source_id_col is None:
+    raise ValueError("Could not find source_id column in stars dataset. Available columns: " + str(list(starsds.columns)))
+
+# Rename the column to source_id for consistency
+if source_id_col != "source_id":
+    starsds = starsds.rename(columns={source_id_col: "source_id"})
+
+# Ensure source_id is a string
+starsds["source_id"] = starsds["source_id"].astype(str).str.strip()
+
+# Find the Gaia DR3 ID column in exoplanet dataset
+gaia_id_col = None
+for col in exoplanetds.columns:
+    if col.lower().replace(" ", "_").replace("-", "_") in ["gaia_dr3_id", "gaia_source_id", "gaia_id"]:
+        gaia_id_col = col
+        break
+
+if gaia_id_col is None:
+    raise ValueError("Could not find gaia_dr3_id column in exoplanet dataset. Available columns: " + str(list(exoplanetds.columns)))
+
+# Rename to gaia_dr3_id for consistency if needed
+if gaia_id_col != "gaia_dr3_id":
+    exoplanetds = exoplanetds.rename(columns={gaia_id_col: "gaia_dr3_id"})
+
+# Ensure gaia_dr3_id is a string and remove the "Gaia DR3 " prefix
 exoplanetds["gaia_dr3_id"] = (
-    exoplanetds["gaia_dr3_id"]
+    exoplanetds["gaia_dr3_id"].astype(str)
     .str.replace("Gaia DR3 ", "", regex=False)
     .str.strip()
 )
@@ -211,7 +253,6 @@ page = st.sidebar.radio(
         "Home",
         "Gaia Star Explorer",
         "Exoplanet Analysis",
-        "Supernova Remnants",
         "Stellar Evolution Simulator"
     ]
 )
